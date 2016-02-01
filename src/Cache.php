@@ -6,9 +6,9 @@
  * Time: 14:26
  */
 
-namespace Caching;
+namespace YamLay\Caching;
 
-use Caching\CacheProviders\FilesCacheProvider;
+use YamLay\Caching\CacheProviders\FilesCacheProvider;
 use Closure;
 
 class Cache {

@@ -15,7 +15,7 @@
   ],
   "autoload": {
     "psr-4": {
-      "YumLay\\Caching\\": "src\\"
+      "YumLay\\Caching\\": "src/"
     }
   }
 }

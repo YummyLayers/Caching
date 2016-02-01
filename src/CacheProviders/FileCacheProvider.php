@@ -6,9 +6,9 @@
  * Time: 13:24
  */
 
-namespace Caching\CacheProviders;
+namespace YamLay\Caching\CacheProviders;
 
-use Caching\AbstractCacheProvider;
+use YamLay\Caching\AbstractCacheProvider;
 
 class FileCacheProvider extends AbstractCacheProvider {
 
