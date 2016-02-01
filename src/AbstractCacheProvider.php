@@ -5,7 +5,7 @@
  * Date: 27.01.2016
  * Time: 14:46
  */
-namespace YamLay\Caching;
+namespace YumLay\Caching;
 
 use Closure;
 use ReflectionFunction;

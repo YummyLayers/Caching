@@ -6,9 +6,9 @@
  * Time: 15:58
  */
 
-namespace YamLay\Caching\CacheProviders;
+namespace YumLay\Caching\CacheProviders;
 
-use YamLay\Caching\AbstractCacheProvider;
+use YumLay\Caching\AbstractCacheProvider;
 use PDO;
 
 class SQLiteCacheProvider extends AbstractCacheProvider {
