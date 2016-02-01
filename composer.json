@@ -1,7 +1,6 @@
 {
   "name": "yumlay/caching",
   "description": "Cache package",
-  "minimum-stability": "stable",
   "license": "MIT",
   "keywords": ["caching","cache","php cache","files cache","pdo cache","cache class"],
   "authors": [
@@ -16,7 +15,7 @@
   ],
   "autoload": {
     "psr-4": {
-      "YummyLayers\\Caching\\": "Caching/"
+      "YumLay\\Caching\\": "src\\"
     }
   }
 }
