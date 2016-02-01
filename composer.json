@@ -1,0 +1,22 @@
+{
+  "name": "yumlay/caching",
+  "description": "Cache package",
+  "minimum-stability": "stable",
+  "license": "MIT",
+  "keywords": ["caching","cache","php cache","files cache","pdo cache","cache class"],
+  "authors": [
+    {
+      "name": "John V. Bright",
+      "email": "ru.mail.ivan@gmail.com"
+    },
+    {
+      "name": "Andrew Karpich",
+      "email": "andrew@karpich.ru"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "YummyLayers\\Caching\\": "Caching/"
+    }
+  }
+}
