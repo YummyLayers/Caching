@@ -1,25 +1,37 @@
 <?php
-
 /**
- * Created by PhpStorm.
- * User: andre
- * Date: 27.01.2016
- * Time: 14:41
+ * IDE: PhpStorm.
+ * License: The MIT License (MIT) - Copyright (c) 2016 YummyLayers
+ * Date: 29.01.2016
  */
 
-namespace YamLay\Caching\CacheProviders;
+namespace YumLay\Caching\CacheProviders;
 
-use YamLay\Caching\AbstractCacheProvider;
+use YumLay\Caching\AbstractCacheProvider;
 
 class FilesCacheProvider extends AbstractCacheProvider {
 
+    /**
+     * Files directory
+     *
+     * @var string
+     */
     private $dir = 'cache/FilesCache';
 
+    /**
+     * File mime
+     *
+     * @var string
+     */
     private $mime = '.fc';
 
+
+    /**
+     * @inheritdoc
+     */
     public function set($key, $value, $secondsLife = 300){
 
-        $inner = serialize(array( $secondsLife, $value, ));
+        $inner = json_encode(array( $secondsLife, $value ));
 
         $result = file_put_contents($this->getDir() . '/' . $key . $this->mime, $inner);
 
@@ -28,6 +40,9 @@ class FilesCacheProvider extends AbstractCacheProvider {
 
     }
 
+    /**
+     * @inheritdoc
+     */
     public function get($key, $default = null){
 
         $fileName = $this->getDir() . '/' . $key . $this->mime;
@@ -36,7 +51,7 @@ class FilesCacheProvider extends AbstractCacheProvider {
 
         if($result !== false && !empty($result)){
 
-            $result = unserialize($result);
+            $result = json_decode($result);
 
             $fileModifyTime = filemtime($fileName);
 
@@ -50,14 +65,23 @@ class FilesCacheProvider extends AbstractCacheProvider {
         return $default;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function remove($key){
         return @unlink($this->getDir() . '/' . $key . $this->mime);
     }
 
+    /**
+     * @inheritdoc
+     */
     public function has($key){
         return file_exists($this->getDir() . '/' . $key . $this->mime);
     }
 
+    /**
+     * @inheritdoc
+     */
     public function expired($key){
 
         $fileName = $this->getDir() . '/' . $key . $this->mime;
@@ -67,7 +91,7 @@ class FilesCacheProvider extends AbstractCacheProvider {
         if($result !== false && !empty($result)){
 
             $fileModifyTime = filemtime($fileName);
-            $result = unserialize($result);
+            $result = json_decode($result);
 
             if((int)$result[0] == 0 || time() < $result[0] + $fileModifyTime){
                 return false;
@@ -79,6 +103,9 @@ class FilesCacheProvider extends AbstractCacheProvider {
         return true;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function removeAll(){
         $answer = true;
         foreach(glob($this->getDir() . '/*') as $fileName){
@@ -88,6 +115,9 @@ class FilesCacheProvider extends AbstractCacheProvider {
         return $answer;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function removeAllExpired(){
         $answer = true;
         foreach(glob($this->getDir() . '/*') as $fileName){
@@ -97,7 +127,7 @@ class FilesCacheProvider extends AbstractCacheProvider {
             if(!empty($result)){
 
                 $fileModifyTime = filemtime($fileName);
-                $result = unserialize($result);
+                $result = json_decode($result);
 
                 if((int)$result[0] !== 0 || time() > (int)$result[0] + $fileModifyTime){
                     $answer = @unlink($fileName);
@@ -113,10 +143,20 @@ class FilesCacheProvider extends AbstractCacheProvider {
     }
 
 
+    /**
+     * Set a directory for file
+     *
+     * @param $dir
+     */
     public function setDir($dir){
         $this->dir = $dir;
     }
 
+    /**
+     * Get a file directory
+     *
+     * @return string
+     */
     private function getDir(){
         $path = $this->dir . $this->name;
         if(!is_dir($path)) mkdir($path, 0700, true);

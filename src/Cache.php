@@ -1,117 +1,202 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: andre
+ * IDE: PhpStorm.
+ * License: The MIT License (MIT) - Copyright (c) 2016 YummyLayers
  * Date: 27.01.2016
- * Time: 14:26
  */
 
-namespace YamLay\Caching;
+namespace YumLay\Caching;
 
-use YamLay\Caching\CacheProviders\FilesCacheProvider;
+use YumLay\Caching\CacheProviders\FilesCacheProvider;
 use Closure;
 
 class Cache {
 
     /**
+     * The array of instances cache stores
+     *
      * @var AbstractCacheProvider[]
      */
-    private static $storages = array();
+    private static $stores = array();
 
     /**
+     * Instance active cache store
+     *
      * @var AbstractCacheProvider
      */
-    private static $activeStorage;
+    private static $activeStore;
 
+
+    /**
+     * Indicates if cache disabled
+     *
+     * @var bool
+     */
     private static $disabled = false;
 
 
     /**
+     * Add a new cache store
+     *
+     * @param string $storeName
+     * @param string $storeProviderName
+     *
      * @return AbstractCacheProvider
      */
-    public static function getActiveStorage(){
-
-        if(empty(self::$activeStorage)){
-
-            $defaultStorage = new FilesCacheProvider('Default');
-
-            self::$storages['Default'] = $defaultStorage;
-            self::$activeStorage = $defaultStorage;
-
-        }
-
-        return self::$activeStorage;
-    }
-
-    public static function setActiveStorage($name){
-        if(self::$storages[ $name ]){
-            self::$activeStorage = self::$storages[ $name ];
-
-            return self::$activeStorage;
-        } else return false;
-    }
-
-    /**
-     * @param string $name
-     * @param string $storageProviderName
-     * @return AbstractCacheProvider
-     */
-    public static function addStorage($name, $storageProviderName = null){
-        if(!empty($storageProviderName)) $storage = new $storageProviderName($name);
-        else $storage = new FilesCacheProvider($name);
+    public static function addStore($storeName, $storeProviderName = null){
+        if(!empty($storeProviderName)) $storage = new $storeProviderName($storeName);
+        else $storage = new FilesCacheProvider($storeName);
 
         if($storage instanceof AbstractCacheProvider){
-            self::$storages[ $name ] = $storage;
+            self::$stores[ $storeName ] = $storage;
+
+            if(count(self::$stores) == 1) $storage->setActive();
 
             return $storage;
         }
 
-        return self::$activeStorage;
+        return self::$activeStore;
     }
 
-    public static function getStorage($name){
-        self::getActiveStorage();
+    /**
+     * Get all the stores
+     *
+     * @return AbstractCacheProvider[]
+     */
+    public static function getStores(){
+        self::getActiveStore();
 
-        return self::$storages[ $name ];
+        return self::$stores;
     }
 
-    public static function getStorages(){
-        self::getActiveStorage();
+    /**
+     * Get cache store by name
+     *
+     * @param string $name
+     *
+     * @return AbstractCacheProvider
+     */
+    public static function getStore($name){
+        self::getActiveStore();
 
-        return self::$storages;
+        return self::$stores[ $name ];
     }
 
+    /**
+     * Get active store
+     *
+     * @return AbstractCacheProvider
+     */
+    public static function getActiveStore(){
 
-    public static function set($key, $value, $secondsLife = 300){
-        if(self::$disabled) $secondsLife = 1;
+        if(empty(self::$activeStore)){
 
-        return self::getActiveStorage()->set($key, $value, $secondsLife);
+            $defaultStore = new FilesCacheProvider('Default');
+
+            self::$stores['Default'] = $defaultStore;
+            self::$activeStore = $defaultStore;
+
+        }
+
+        return self::$activeStore;
     }
 
-    public static function get($key, $default = null){
-        return self::getActiveStorage()->get($key, $default);
-    }
+    /**
+     * Set the active cache store
+     *
+     * @param string $name
+     *
+     * @return AbstractCacheProvider
+     */
+    public static function setActiveStore($name){
+        if(self::$stores[ $name ]){
+            self::$activeStore = self::$stores[ $name ];
 
-    public static function has($key){
-        return self::getActiveStorage()->has($key);
-    }
-
-    public static function remove($key){
-        return self::getActiveStorage()->remove($key);
-    }
-
-    public static function expired($key){
-        return self::getActiveStorage()->expired($key);
-    }
-
-    public static function call(Closure $callback, $secondsLife = 300, $key = null){
-        if(self::$disabled) $secondsLife = 1;
-
-        return self::getActiveStorage()->call($callback, $secondsLife, $key);
+            return self::$activeStore;
+        } else return false;
     }
 
 
     /**
+     * Set the new item or rewrite item in the active cache store
+     *
+     * @param string $key
+     * @param mixed  $value
+     * @param int    $secondsLife
+     *
+     * @return boolean
+     */
+    public static function set($key, $value, $secondsLife = 300){
+        if(self::$disabled) $secondsLife = 1;
+
+        return self::getActiveStore()->set($key, $value, $secondsLife);
+    }
+
+    /**
+     * Get the value of an active cache store
+     *
+     * @param string $key
+     * @param mixed  $default
+     *
+     * @return mixed
+     */
+    public static function get($key, $default = null){
+        return self::getActiveStore()->get($key, $default);
+    }
+
+    /**
+     * Call the anonymous function and saves, gives the result
+     * if the cache is not present in the repository, or it has expired
+     *
+     * @param Closure $callback
+     * @param int     $secondsLife
+     * @param string  $key
+     *
+     * @return mixed
+     */
+    public static function call(Closure $callback, $secondsLife = 300, $key = null){
+        if(self::$disabled) $secondsLife = 1;
+
+        return self::getActiveStore()->call($callback, $secondsLife, $key);
+    }
+
+    /**
+     * Determine if an item exists in the active cache store
+     *
+     * @param string $key
+     *
+     * @return boolean
+     */
+    public static function has($key){
+        return self::getActiveStore()->has($key);
+    }
+
+    /**
+     * Determine if an item expired in the active cache store
+     *
+     * @param string $key
+     *
+     * @return boolean
+     */
+    public static function expired($key){
+        return self::getActiveStore()->expired($key);
+    }
+
+    /**
+     * Remove item in the active cache store
+     *
+     * @param string $key
+     *
+     * @return boolean
+     */
+    public static function remove($key){
+        return self::getActiveStore()->remove($key);
+    }
+
+
+    /**
+     * Disable caching
+     *
      * @param boolean $boolean
      */
     public static function disable($boolean){
@@ -119,6 +204,8 @@ class Cache {
     }
 
     /**
+     * Determine whether caching is disable
+     *
      * @return boolean
      */
     public static function isDisabled(){

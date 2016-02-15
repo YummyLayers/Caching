@@ -1,60 +1,96 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: andre
+ * IDE: PhpStorm.
+ * License: The MIT License (MIT) - Copyright (c) 2016 YummyLayers
  * Date: 28.01.2016
- * Time: 15:58
  */
 
-namespace YamLay\Caching\CacheProviders;
+namespace YumLay\Caching\CacheProviders;
 
-use YamLay\Caching\AbstractCacheProvider;
+use YumLay\Caching\AbstractCacheProvider;
 use PDO;
+use PDOException;
 
 class SQLiteCacheProvider extends AbstractCacheProvider {
 
+    /**
+     * Files directory
+     *
+     * @var string
+     */
     private $dir = 'cache';
 
+    /**
+     * File mime
+     *
+     * @var string
+     */
     private $mime = '.db';
 
+    /**
+     * The database connection instance.
+     *
+     * @var PDO
+     */
     private $db;
 
+
+    /**
+     * Data from the last query
+     *
+     * @var array
+     */
     private $row;
 
+    /**
+     * Indicates whether you need to update the database
+     *
+     * @var bool
+     */
     private $dbUpdated = false;
 
+    /**
+     * @inheritdoc
+     */
     public function __construct($name){
         parent::__construct($name);
 
-        $this->db = new PDO('sqlite:' . $this->getDir() . '/' . $name . 'Cache' . $this->mime);
+        try {
 
-        $this->db->query('CREATE TABLE IF NOT EXISTS `cache`(
-            `id` INTEGER PRIMARY KEY AUTOINCREMENT,
-            `key` TEXT NOT NULL,
-            `value` TEXT,
-            `expires` INTEGER
-        )');
+            $this->db = new PDO('sqlite:' . $this->getDir() . '/' . $name . 'Cache' . $this->mime);
 
-        // TODO: set Exception, if database don't create
+            $this->db->query('CREATE TABLE IF NOT EXISTS `cache`(
+              `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+              `key` TEXT NOT NULL,
+              `value` TEXT,
+              `expires` INTEGER
+            )');
+
+        } catch(PDOException $e){
+            echo 'SQLiteCacheProvider: ' . $e->getMessage();
+            die();
+        }
     }
 
-
+    /**
+     * @inheritdoc
+     */
     public function set($key, $value, $secondsLife = 300){
 
-        $key = $this->db->quote($key);
-        $value = $this->db->quote($value);
+        $keyQuote = $this->db->quote($key);
+        $value = $this->db->quote(json_encode($value));
         $expires = time() + (int)$secondsLife;
 
         if(!$this->has($key)){
             $res = $this->db->query('
                 INSERT INTO `cache` (`key`, `value`, `expires`)
-                VALUES (' . $key . ', ' . $value . ', ' . $expires . ')'
+                VALUES (' . $keyQuote . ', ' . $value . ', ' . $expires . ')'
             );
         } else {
             $res = $this->db->query('
                 UPDATE `cache`
                 SET `value`=' . $value . ', `expires`=' . $expires . '
-                WHERE `key`=' . $key
+                WHERE `key`=' . $keyQuote
             );
         }
 
@@ -63,18 +99,24 @@ class SQLiteCacheProvider extends AbstractCacheProvider {
         return $res;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function has($key){
         if(!$this->select($key)) return false;
         else return true;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function get($key, $default = null){
         $result = $this->select($key);
 
         if($result){
             if($result['expires'] == 0 || $result['expires'] > time()){
-                $answer = $result['value'];
-            }else{
+                $answer = json_decode($result['value']);
+            } else {
                 $answer = $default;
                 $this->remove($key);
             }
@@ -83,18 +125,24 @@ class SQLiteCacheProvider extends AbstractCacheProvider {
         return $answer;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function expired($key){
 
         $result = $this->select($key);
 
         if($result){
-            if($result['expires'] != 0 && time() >= $result['expires']) $answer = true;
+            if((int)$result['expires'] != 0 && time() >= (int)$result['expires']) $answer = true;
             else $answer = false;
         } else $answer = true;
 
         return $answer;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function remove($key){
         $key = $this->db->quote($key);
         $res = $this->db->query('
@@ -109,6 +157,9 @@ class SQLiteCacheProvider extends AbstractCacheProvider {
         return false;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function removeAll(){
 
         $res = $this->db->query('
@@ -120,6 +171,9 @@ class SQLiteCacheProvider extends AbstractCacheProvider {
         return $res;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function removeAllExpired(){
         $res = $this->db->query('
                 DELETE FROM `cache`
@@ -133,6 +187,9 @@ class SQLiteCacheProvider extends AbstractCacheProvider {
         return false;
     }
 
+    /**
+     * @inheritdoc
+     */
     private function select($key){
 
         if($this->row && $this->row['key'] == $key && !$this->dbUpdated){
@@ -142,7 +199,7 @@ class SQLiteCacheProvider extends AbstractCacheProvider {
             $res = $this->db->query('SELECT *  FROM `cache` WHERE `key`=' . $key);
 
             if($res){
-                $result = $res->fetch();
+                $result = $res->fetch(PDO::FETCH_ASSOC);
 
                 if($result) $answer = $result;
                 else $answer = false;
@@ -157,10 +214,20 @@ class SQLiteCacheProvider extends AbstractCacheProvider {
         return $answer;
     }
 
+    /**
+     * Set a directory for files
+     *
+     * @param $dir
+     */
     public function setDir($dir){
         $this->dir = $dir;
     }
 
+    /**
+     * Get a files directory
+     *
+     * @return string
+     */
     private function getDir(){
         $path = $this->dir;
         if(!is_dir($path)) mkdir($path, 0700, true);
